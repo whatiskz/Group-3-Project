@@ -1,0 +1,300 @@
+dt = 0.1;
+x0 = [0;0];
+
+obs0 = [5;0];
+obs1 = [2;0];
+obs2 = [7;4];
+obs3 = [9;-2]; 
+obslist0 = obs0;
+obslist1 = obs1;
+obslist2 = obs2;
+obslist3 = obs3;
+
+
+goal = [3;4];
+kmax = 100;
+thres = 0.1;
+dmin = 2;
+
+%Constant Velocity Model
+
+%obstacle motion
+%obstacle = @(k) obs0+[-0.5;0.5]*(k-1)*dt; %Constant velocity
+obstacle0 = @(k) obs0+[-0.8;0.4]*(k-1)*dt; %Constant velocity
+obstacle1 = @(k) obs1+[0.3;0.9]*(k-1)*dt;
+%obstacle1 = @(cur,x) cur + 1*dt*(x-cur); % Adversarial obstacle
+obstacle2 = @(k) obs2+[0.15;0.2]*(k-1)*dt;
+obstacle3 = @(k) obs3+[-0.24;-0.4]*(k-1)*dt;
+
+%obstacle model
+obsnew = @(cur,past) cur + (cur-past);
+
+x =  [x0;0;0];
+xlist = [x];
+
+% For plotting
+figure(1);clf;hold on;axis([-10 10 -10 10])
+robot.handle = plot(x(1),x(2),'o','linewidth',3,'color','r','markersize',20);
+traj.handle = plot(xlist(1,:), xlist(2,:),'k');
+
+obs_0.handle=plot(obslist0(1)+0.25*dmin*cos(0:0.1:2*pi), obslist0(2)+0.25*dmin*sin(0:0.1:2*pi),'--');%/////////////////
+obs_1.handle=plot(obslist1(1)+0.25*dmin*cos(0:0.1:2*pi), obslist1(2)+0.25*dmin*sin(0:0.1:2*pi),'--');
+obs_2.handle=plot(obslist2(1)+0.25*dmin*cos(0:0.1:2*pi), obslist2(2)+0.25*dmin*sin(0:0.1:2*pi),'--');%/////////////////
+obs_3.handle=plot(obslist3(1)+0.25*dmin*cos(0:0.1:2*pi), obslist3(2)+0.25*dmin*sin(0:0.1:2*pi),'--');
+
+
+set(robot.handle,'XDataSource','x(1)');
+set(robot.handle,'YDataSource','x(2)');
+set(traj.handle,'XDataSource','xlist(1,:)');
+set(traj.handle,'YDataSource','xlist(2,:)');
+set(obs_0.handle,'XDataSource','obslist0(1,end-1)+0.25*dmin*cos(0:0.1:2*pi)');
+set(obs_0.handle,'YDataSource','obslist0(2,end-1)+0.25*dmin*sin(0:0.1:2*pi)');
+set(obs_1.handle,'XDataSource','obslist1(1,end-1)+0.25*dmin*cos(0:0.1:2*pi)');
+set(obs_1.handle,'YDataSource','obslist1(2,end-1)+0.25*dmin*sin(0:0.1:2*pi)');
+set(obs_2.handle,'XDataSource','obslist2(1,end-1)+0.25*dmin*cos(0:0.1:2*pi)');
+set(obs_2.handle,'YDataSource','obslist2(2,end-1)+0.25*dmin*sin(0:0.1:2*pi)');
+set(obs_3.handle,'XDataSource','obslist3(1,end-1)+0.25*dmin*cos(0:0.1:2*pi)');
+set(obs_3.handle,'YDataSource','obslist3(2,end-1)+0.25*dmin*sin(0:0.1:2*pi)');
+% predict obs traj for kmax time step
+
+% prediction /////////////////////////////////////////////
+v0 = (obstacle0(2)-obslist0(:,1))/dt;
+v1 = (obstacle1(2)-obslist1(:,1))/dt;
+v2 = (obstacle2(2)-obslist2(:,1))/dt;
+v3 = (obstacle3(2)-obslist3(:,1))/dt;
+
+
+obsPredictList0 = [obs0];
+obsPredictList0 = [obsPredictList0 obstacle0(2)];
+for k = 3:kmax
+   obsPredictList0 = [obsPredictList0 obsPredictList0(:,2)+(k-2)*v0*dt];
+end
+
+obsPredictList1 = [obs1];
+obsPredictList1 = [obsPredictList1 obstacle1(2)];
+for k = 3:kmax
+   obsPredictList1 = [obsPredictList1 obsPredictList1(:,2)+(k-2)*v1*dt];
+end
+
+obsPredictList2 = [obs2];
+obsPredictList2 = [obsPredictList2 obstacle2(2)];
+for k = 3:kmax
+   obsPredictList2 = [obsPredictList2 obsPredictList2(:,2)+(k-2)*v2*dt];
+end
+
+obsPredictList3 = [obs3];
+obsPredictList3 = [obsPredictList3 obstacle3(2)];
+for k = 3:kmax
+   obsPredictList3 = [obsPredictList3 obsPredictList3(:,2)+(k-2)*v3*dt];
+end
+%///////////////////////////////////////////////////////////
+
+
+
+% planning  /////////////////////////////////////////////
+obsdynamics0=@(k) obs0+[-0.8;0.4].*(k-1)*dt;%//////////////////////////
+obsdynamics1=@(k) obs1+[1.5;4.5].*(k-1)*dt;
+obsdynamics2=@(k) obs2+[0.15;0.24].*(k-1)*dt;%//////////////////////////
+obsdynamics3=@(k) obs3+[-0.24;-0.4].*(k-1)*dt;
+
+trajectory0 = safe_planning([0;0;0;0], goal, obs0, obsdynamics0, dmin, kmax);
+plot(trajectory0(1:2:end),trajectory0(2:2:end))
+
+trajectory1 = safe_planning([0;0;0;0], goal, obs1, obsdynamics1, dmin, kmax);
+plot(trajectory1(1:2:end),trajectory1(2:2:end))
+
+trajectory2 = safe_planning([0;0;0;0], goal, obs2, obsdynamics2, dmin, kmax);
+plot(trajectory2(1:2:end),trajectory2(2:2:end))
+
+trajectory3 = safe_planning([0;0;0;0], goal, obs3, obsdynamics3, dmin, kmax);
+plot(trajectory3(1:2:end),trajectory3(2:2:end))
+%///////////////////////////////////////////////////////////
+
+
+
+% Single Simulation
+for k = 1:kmax
+    % Predict the obstale location in the next step
+    pred0 = obsnew(obstacle0(k),obstacle0(max([k-1,1])));
+    pred1 = obsnew(obstacle1(k),obstacle1(max([k-1,1])));
+    pred2 = obsnew(obstacle2(k),obstacle2(max([k-1,1])));
+    pred3 = obsnew(obstacle3(k),obstacle3(max([k-1,1])));
+    % apply control
+    %u = safe_tracking(x,goal,pred,dmin,dt);                   ////////////////////////////////////////////            
+    u0 = safe_tracking(x,trajectory0(2*k-1:2*k,:),pred0,dmin,dt);%///////////////////////
+    u1 = safe_tracking(x,trajectory1(2*k-1:2*k,:),pred1,dmin,dt);
+    u2 = safe_tracking(x,trajectory2(2*k-1:2*k,:),pred2,dmin,dt);%///////////////////////
+    u3 = safe_tracking(x,trajectory3(2*k-1:2*k,:),pred3,dmin,dt);
+   
+
+    x = double_integrator(x, u0, dt);
+    
+
+    % observe obstacle position
+    obslist0 = [obslist0 obstacle0(k+1)];
+    obslist1 = [obslist1 obstacle1(k+1)];
+    obslist2 = [obslist2 obstacle2(k+1)];
+    obslist3 = [obslist3 obstacle3(k+1)];
+    xlist = [xlist x];
+%/////////////////////////////////////////////////  
+    plot (obsPredictList0(1,:),obsPredictList0(2,:));
+    plot (obslist0(1,:),obslist0(2,:))
+    plot (obsPredictList1(1,:),obsPredictList1(2,:));
+    plot (obslist1(1,:),obslist1(2,:))
+    plot (obsPredictList2(1,:),obsPredictList2(2,:));
+    plot (obslist2(1,:),obslist2(2,:))
+    plot (obsPredictList3(1,:),obsPredictList3(2,:));
+    plot (obslist3(1,:),obslist3(2,:))
+%/////////////////////////////////////////////////  
+
+    refreshdata([robot.handle,obs_0.handle],'caller');
+    refreshdata([robot.handle,obs_1.handle],'caller');
+    refreshdata([robot.handle,obs_2.handle],'caller');
+    refreshdata([robot.handle,obs_3.handle],'caller');
+    axis equal
+    axis([-10 10 -10 10])
+    if norm(x(1:2)-goal)<thres
+        break
+    end
+    pause(dt)
+end
+
+
+refreshdata([traj.handle],'caller');
+box on;
+
+title("Double Integrator with collision avoidance")
+
+
+%Utility functions
+function flag = collision_check(path,obs,obsdynamics,dmin)
+obspath = obs;dim = 2;
+for i = 2:length(path)/2
+    obspath = [obspath;obsdynamics(obspath(end-1:end))];
+end
+for i=1:length(path)/2
+    d = norm(path((i-1)*dim+1:i*dim) - obspath((i-1)*dim+1:i*dim));
+    if d < dmin
+        flag = true;
+    end
+end
+flag = false;
+end
+% collision_check不用改
+
+
+function newpath = safe_planning(x,goal,obs,obsdynamics,dmin,h)
+nstep = h;
+dim = 2;
+Q1 = eye(nstep*dim); % return一个nstep*dim大小的indentity matrix
+Q1((nstep-1)*dim+1:end,(nstep-1)*dim+1:end) =  eye(dim)*2000;
+Q1(1:dim,1:dim) =  eye(dim)*1000;
+% The velocity
+Vdiff = eye(nstep*dim)-diag(ones(1,(nstep-1)*dim),dim);
+Q2 = Vdiff(1:(nstep-1)*dim,:)'*Q1(1+dim:end,1+dim:end)*Vdiff(1:(nstep-1)*dim,:);
+% The accelaration
+Adiff = Vdiff-diag(ones(1,(nstep-1)*dim),dim)+diag(ones(1,(nstep-2)*dim),dim*2);
+Q3 = Adiff(1:(nstep-2)*dim,:)'*Adiff(1:(nstep-2)*dim,:);
+% The weight
+c = [0.1,10,20];
+% The total cost
+Qref = Q1*c(1)+Q2*c(2);%+Q3*c(3);
+Qabs = Q3*c(3);
+
+
+% The Iteration////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+refpath = x(1:2);obspath = obs;
+for i = 2:nstep
+    refpath = [refpath;x(1:2)+(goal-x(1:2)).*((i-1)/(nstep-1))];
+    obspath = [obspath;obsdynamics(obspath(end-1:end))];
+    %obspath = obsPredictList;
+end
+%//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+margin = dmin;
+refpath_cost = refpath;
+fun = @(x) (x-refpath_cost)'*Qref*(x-refpath_cost)+x'*Qabs*x;
+cost_profile = [];
+cost_profile(1) = fun(refpath);
+iterpath = [];
+iterpath = [iterpath refpath];
+options = optimoptions('quadprog','Display','none');
+for k = 1:1
+    % The constraint
+    Lstack = []; Sstack = [];  
+    for i=1:nstep
+        lstack = []; sstack = [];
+        %poly = obs{j}.poly+obs{j}.v*ones(1,4)*dt*i;
+        L = refpath((i-1)*dim+1:i*dim) - obspath((i-1)*dim+1:i*dim); 
+        L = -L'./norm(L);
+        S = L*obspath((i-1)*dim+1:i*dim);
+        lstack = [lstack;L];
+        sstack = [sstack;S-margin];
+        
+        Lstack = [Lstack;zeros(1,(i-1)*dim) lstack zeros(1,(nstep-i)*dim)];
+        Sstack = [Sstack;sstack];
+    end
+    %% QP
+    newpath = quadprog(Qref+Qabs,-Qref*refpath_cost,Lstack,Sstack,[],[],[],[],[],options);
+    
+    cost_profile(k+1) = fun(newpath);
+    iterpath = [iterpath newpath];
+    if norm(newpath-refpath) < 0.5
+        %disp(['Convergence at iteration ',num2str(k)]);
+        break
+    else
+        refpath = newpath;
+    end
+end
+end
+% Safe Planning不用改
+
+
+
+function u = tracking(x,goal)
+kp = 1;
+kd = 1;
+kphi = 0.1;
+u = kp*(goal-x(1:2)) - kd*(x(3:4)); % 与safe_tracking中的nominal control保持一致
+end
+% tracking不用改
+
+
+
+
+
+
+function [u,flag] = safe_tracking(x,goal,obs,dmin,dt) % safe tracking controller for double integrator
+kp = 1; % Distance parameter
+kd = 1; % Velocity parameter
+kphi = 0.1;
+
+ur = kp*(goal-x(1:2)) - kd*(x(3:4)); % Nominal control 不用改
+
+dr = x(1:2)+dt*x(3:4)-obs; % 下一个time step时与obstacle的distance
+
+ddotr = (x(1)+dt*x(3)-obs(1))*(x(3)+dt*ur(1))+(x(2)+dt*x(4)-obs(2))*(x(4)+dt*ur(2));
+
+varphi = dmin - norm(dr) - kphi*ddotr; % Cost function算出来的phi
+
+c = max(0,varphi)/norm(dr)/dt/kphi;
+
+
+
+
+u = ur + c*dr;                % Nominal control加上safe constraint
+if c > 0
+    flag = true;
+else
+    flag = false;
+end
+end
+
+
+
+
+function xnew = double_integrator(x, u, dt)
+n = length(x)/2;
+xnew(1:n,1) = x(1:n) + x(n+1:2*n)*dt + u*dt^2/2;
+xnew(n+1:2*n,1) = x(n+1:2*n) + u*dt;
+end
+%double_integrator不用改
